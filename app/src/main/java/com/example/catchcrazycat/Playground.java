@@ -10,6 +10,10 @@ import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by My Computer on 2017/6/13.
@@ -20,7 +24,7 @@ public class Playground extends SurfaceView implements View.OnTouchListener{    
     private static final int COL=10;
     private static final int ROW=10;
     private static final int BLOCKS=10;  //默认添加的路障数量
-
+    int k=1;
     private Dot matrix[][];
     private Dot cat;
 
@@ -39,10 +43,98 @@ public class Playground extends SurfaceView implements View.OnTouchListener{    
     private Dot getDot(int x,int y){
         return matrix[y][x];
     }
+
+    private boolean isAtEdge(Dot d){                                   //因为x，y范围为0~9，
+        if (d.getX()*d.getY()==0||d.getX()+1==COL||d.getY()+1==ROW){
+            return true;
+        }
+        return false;
+    }
+    private Dot getNeighbor(Dot one,int dir){
+        switch (dir){
+            case  1:
+               return getDot(one.getX()-1,one.getY());
+            case  2:
+                if (one.getY()%2==0){
+                    return getDot(one.getX()-1,one.getY()-1);
+                }else {
+                    return getDot(one.getX(),one.getY()-1);
+                }
+
+            case  3:
+                if (one.getY()%2==0){
+                    return getDot(one.getX(),one.getY()-1);
+                }else {
+                    return getDot(one.getX()+1,one.getY()-1);
+                }
+            case  4:
+                return getDot(one.getX()+1,one.getY());
+            case  5:
+                if (one.getY()%2==0){
+                    return getDot(one.getX(),one.getY()+1);
+                }else {
+                    return getDot(one.getX()+1,one.getY()+1);
+                }
+            case  6:
+                if (one.getY()%2==0){
+                    return getDot(one.getX()-1,one.getY()+1);
+                }else {
+                    return getDot(one.getX(),one.getY()+1);
+                }
+            default:
+                break;
+        }
+        return null;
+    }
+    private int getDistance(Dot one,int dir){
+        int distance=0;
+        Dot ori=one,next;
+        while (true){
+            next=getNeighbor(ori,dir);
+            if (next.getStatus()==Dot.STATUS_ON){
+                return distance*-1;
+            }
+            if (isAtEdge(next)){
+                distance++;
+                return distance;
+            }
+            distance++;
+            ori=next;
+        }
+    }
+    private void moveTo(Dot one){
+        one.setStatus(Dot.STATUS_IN);
+        getDot(cat.getX(),cat.getY()).setStatus(Dot.STATUS_OFF );
+        cat.setXY(one.getX(),one.getY() );
+    }
+    private void move(){
+        if (isAtEdge(cat)){
+            lose();
+            return;
+        }
+        List<Dot> dots=new ArrayList<>();
+        for (int i=1;i<7;i++){
+            Dot neighbor=getNeighbor(cat,i);
+            if (neighbor.getStatus()==Dot.STATUS_OFF){
+                dots.add(neighbor);
+            }
+        }
+        if (dots.size()==0){
+            win();
+        }else {
+            moveTo(dots.get(0));
+        }
+    }
+    private void win(){
+        Toast.makeText(getContext(),"You Win!",Toast.LENGTH_SHORT).show();
+    }
+    private void lose(){
+        Toast.makeText(getContext(),"You Lose!",Toast.LENGTH_SHORT).show();
+    }
     private void redraw(){
         Canvas c=getHolder().lockCanvas();           //获得画布
         c.drawColor(Color.LTGRAY);
-        Paint paint=new Paint();
+        Paint paint=new Paint();                     //获得画笔
         paint.setFlags(Paint.ANTI_ALIAS_FLAG);    //抗锯齿
         for (int i=0;i<ROW;i++){
             int offset=0;
@@ -100,7 +192,6 @@ public class Playground extends SurfaceView implements View.OnTouchListener{    
             if (getDot(x,y).getStatus()==Dot.STATUS_OFF){
                 getDot(x,y).setStatus(Dot.STATUS_ON);
                 i++;
-                Log.d("playground", "initGame: "+i);
             }
         }
     }
@@ -116,11 +207,21 @@ public class Playground extends SurfaceView implements View.OnTouchListener{    
                 x=(int)(event.getX()-WIDTH/2)/WIDTH;
             }
             if (x+1>10||y+1>ROW){
-            }else {
-                if (getDot(x,y).status==Dot.STATUS_OFF){
-                    getDot(x,y).setStatus(Dot.STATUS_ON);
-                }
+//                getNeighbor(cat,k).setStatus(Dot.STATUS_IN);
+//                k++;
+//                redraw();
+                initGame();
             }
+            else if (getDot(x,y).getStatus()==Dot.STATUS_OFF){
+                getDot(x,y).setStatus(Dot.STATUS_ON);
+                move();
+            }
+//            else {
+//                if (getDot(x,y).status==Dot.STATUS_OFF){
+//                    getDot(x,y).setStatus(Dot.STATUS_ON);
+//                }
+//                move();
+//            }
             redraw();
         }
         return true;
